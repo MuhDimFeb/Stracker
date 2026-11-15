@@ -1,7 +1,7 @@
 import type { Game } from '../data'
 
-// Requests go through /steam/* (Vite proxy in dev, vercel.json rewrite in prod) because
-// store.steampowered.com does not allow browser CORS. cc=id returns prices in IDR.
+// Requests go through our own /api/steam function because store.steampowered.com does not
+// allow browser CORS. cc=id returns prices in IDR.
 interface Item { id: number; name: string; price?: { initial?: number; final?: number } }
 
 export const cover = (id: string) => `https://cdn.cloudflare.steamstatic.com/steam/apps/${id}/header.jpg`
@@ -14,8 +14,8 @@ const toGame = (i: Item): Game => {
 }
 
 export async function searchGames(term: string, signal?: AbortSignal): Promise<Game[]> {
-  const r = await fetch(`/steam/api/storesearch/?term=${encodeURIComponent(term)}&l=english&cc=id`, { signal })
-  if (!r.ok) throw new Error('steam search failed')
+  const r = await fetch(`/api/steam?r=search&term=${encodeURIComponent(term)}&l=english&cc=id`, { signal })
+  if (!r.ok) throw new Error(((await r.json().catch(() => null)) as { error?: string } | null)?.error ?? `Request failed (${r.status})`)
   const d = await r.json()
   return ((d.items ?? []) as Item[]).map(toGame)
 }
@@ -24,7 +24,7 @@ export async function refreshPrices(ids: string[]) {
   const out: Record<string, { price: number; regular: number }> = {}
   for (let i = 0; i < ids.length; i += 50) {
     const chunk = ids.slice(i, i + 50)
-    const r = await fetch(`/steam/api/appdetails?appids=${chunk.join(',')}&filters=price_overview&cc=id`)
+    const r = await fetch(`/api/steam?r=details&appids=${chunk.join(',')}&filters=price_overview&cc=id`)
     if (!r.ok) continue
     const d = await r.json()
     for (const id of chunk) {
