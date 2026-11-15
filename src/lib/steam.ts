@@ -44,4 +44,4 @@ export async function fetchLows(ids: string[]): Promise<Record<string, number>> 
   } catch {
     return {}
   }
-}
+} 

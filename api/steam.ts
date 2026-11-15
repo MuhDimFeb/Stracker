@@ -1,47 +1,29 @@
-import type { Game } from '../data'
+// GET /api/steam?r=search|details&...steam params  ->  Steam store JSON.
+// Browsers can't call Steam directly (CORS), so this runs on the server (Vercel function; in dev via the Vite plugin).
+import type { IncomingMessage, ServerResponse } from 'node:http'
 
-// Requests go through our own /api/steam function because store.steampowered.com does not
-// allow browser CORS. cc=id returns prices in IDR.
-interface Item { id: number; name: string; price?: { initial?: number; final?: number } }
+const ROUTES: Record<string, string> = { search: '/api/storesearch/', details: '/api/appdetails' }
 
-export const cover = (id: string) => `https://cdn.cloudflare.steamstatic.com/steam/apps/${id}/header.jpg`
-
-// Steam reports prices in hundredths of the currency unit.
-const toGame = (i: Item): Game => {
-  const price = (i.price?.final ?? 0) / 100
-  const regular = Math.max((i.price?.initial ?? i.price?.final ?? 0) / 100, price)
-  return { id: String(i.id), name: i.name, price, regular, low: price }
-}
-
-export async function searchGames(term: string, signal?: AbortSignal): Promise<Game[]> {
-  const r = await fetch(`/api/steam?r=search&term=${encodeURIComponent(term)}&l=english&cc=id`, { signal })
-  if (!r.ok) throw new Error(((await r.json().catch(() => null)) as { error?: string } | null)?.error ?? `Request failed (${r.status})`)
-  const d = await r.json()
-  return ((d.items ?? []) as Item[]).map(toGame)
-}
-
-export async function refreshPrices(ids: string[]) {
-  const out: Record<string, { price: number; regular: number }> = {}
-  for (let i = 0; i < ids.length; i += 50) {
-    const chunk = ids.slice(i, i + 50)
-    const r = await fetch(`/api/steam?r=details&appids=${chunk.join(',')}&filters=price_overview&cc=id`)
-    if (!r.ok) continue
-    const d = await r.json()
-    for (const id of chunk) {
-      const p = d?.[id]?.data?.price_overview
-      if (p) out[id] = { price: p.final / 100, regular: p.initial / 100 }
-    }
+export default async function handler(req: IncomingMessage, res: ServerResponse) {
+  const send = (code: number, body: string, cache = 'no-store') => {
+    res.statusCode = code
+    res.setHeader('content-type', 'application/json')
+    res.setHeader('cache-control', cache)
+    res.end(body)
   }
-  return out
-}
-
-// All-time lows (IDR) from IsThereAnyDeal via our /api/lows function. Returns {} when unavailable.
-export async function fetchLows(ids: string[]): Promise<Record<string, number>> {
-  if (!ids.length) return {}
+  const q = new URL(req.url ?? '', 'http://x').searchParams
+  const route = ROUTES[q.get('r') ?? '']
+  if (!route) return send(400, JSON.stringify({ error: 'Unknown Steam route' }))
+  q.delete('r')
   try {
-    const r = await fetch(`/api/lows?appids=${ids.slice(0, 50).join(',')}`)
-    return r.ok ? await r.json() : {}
+    const r = await fetch(`https://store.steampowered.com${route}?${q}`, {
+      headers: { 'user-agent': 'Mozilla/5.0 (compatible; STRACKER/1.0)', accept: 'application/json', 'accept-language': 'en-US,en;q=0.9' },
+    })
+    if (!r.ok) return send(502, JSON.stringify({ error: `Steam responded with status ${r.status}` }))
+    const text = await r.text()
+    JSON.parse(text) // make sure Steam really returned JSON, not an HTML block page
+    send(200, text, 'public, s-maxage=300')
   } catch {
-    return {}
+    send(502, JSON.stringify({ error: 'Steam did not return valid data to the server' }))
   }
 }
