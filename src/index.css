@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #171a21;
+  --color-bar: #232730;
+  --color-card: #1b1c27;
+  --color-line: #3b3b3f;
+  --color-ph: #3b3b3f;
+  --color-tx: #e6e8eb;
+  --color-mut: #8b919b;
+  --color-blue: #5e9bcb;
+  --color-navy: #223244;
+  --color-gold: #d9a441;
+  --color-lowbg: #222d1f;
+  --color-low: #9cc27a;
+  --font-display: 'Chakra Petch', sans-serif;
+  --font-plex: 'IBM Plex Sans', sans-serif;
+  --font-inter: Inter, sans-serif;
+  --font-nunito: 'Nunito Sans', sans-serif;
+  --shadow-card: 0 4px 4px rgba(0, 0, 0, 0.25);
+  --shadow-inset: inset 0 4px 4px rgba(0, 0, 0, 0.25);
+  --shadow-well: inset -5px 4px 4px rgba(0, 0, 0, 0.25), inset 5px 4px 10px rgba(0, 0, 0, 0.25);
+  --shadow-panel: 2px 4px 4px rgba(0, 0, 0, 0.25), -2px 4px 4px rgba(0, 0, 0, 0.25);
+}
+
+@layer base {
+  body { @apply bg-bg font-display text-tx; }
+  button { cursor: pointer; }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--color-blue); outline-offset: 2px; }
+}
