@@ -27,3 +27,4 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     send(502, JSON.stringify({ error: 'Steam did not return valid data to the server' }))
   }
 }
+ 
