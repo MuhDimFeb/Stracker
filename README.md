@@ -48,3 +48,11 @@ src/data.ts          types, quests, XP/level logic
 src/lib/             currency, steam, supabase helpers
 supabase/schema.sql  table + RLS policies
 ```
+## AI Usage
+AI was used for the following aspect of this projects:
+1. Backend Implementation
+2. Bug Searching and Fixing
+3. Error Fix on the frontend part
+4. UI/UX Reference(The UI/UX **IS NOT CREATED USING AI**)
+5. Steam API Integration
+6. Database Implementation Bug Fixes
